@@ -1,0 +1,25 @@
+# Objects, dependences and pre-compilated headers
+*.o
+*.d
+*.gch
+
+# Depuration/Cache Memory Files dumps
+core
+core.*
+vgcore.*
+
+# temp files/simple editors
+*~
+*.swp
+*.swo
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+cmake-build-*/
+.clion/
