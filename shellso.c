@@ -2,6 +2,7 @@
 # include <stdlib.h>
 # include <unistd.h>
 # include <string.h>
+# include <sys/wait.h>
 
 int main(void) {
     char linea[1024];
@@ -44,7 +45,31 @@ int main(void) {
         //Para probar nomas
         printf("Comando: [%s]\n", argv[0]);
         for(int i = 1; i < argc; i++){
-            printf(" Argumento: %d [%s]\n", i , argv[i]);
+            printf(" Argumento [%d]: %s\n", i , argv[i]);
+        }
+
+        //Partir el fork
+        pid_t pid = fork();
+        if (pid < 0){
+            perror("Error de fork");
+            break;
+        }
+        //Hijo
+        else if(pid == 0){
+            //Reemplaza el hijo con lo que se pide a la shell (el argv[0])
+            execvp(argv[0], argv);
+            //Solo se ejecuta lo de abajo si falla el execvp
+            perror("Comando no existe");
+            exit(127);
+        }
+
+        //Padre
+        else{
+            int status;
+            //Esperando a que hijo termine de ejecutar antes de ciclar de vuelta
+            if (waitpid(pid, &status,0) < 0){
+                perror("Error en waitpid");
+            }
         }
     }
     return 0;
