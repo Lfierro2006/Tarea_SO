@@ -42,10 +42,44 @@ int main(void) {
             continue;
         }
 
-        //Para probar nomas
+        //Para probar nomas, ponganlo como comentario si es muy incomodo
         printf("Comando: [%s]\n", argv[0]);
         for(int i = 1; i < argc; i++){
             printf(" Argumento [%d]: %s\n", i , argv[i]);
+        }
+
+        //Comandos Built In:
+
+        //Exit
+        if (strcmp(argv[0], "exit") == 0){
+            //el estatus default
+            int exit_status = 0;
+            //estatus especifico
+            if (argc > 1){
+                exit_status = atoi(argv[1]);
+            }
+            exit(exit_status);
+        }
+
+        //cd
+        if (strcmp(argv[0], "cd") == 0){
+            //Si tiene argumento, se usa, sino, se usa Home
+            const char *dir = (argc > 1)? argv[1] : getenv("HOME");
+            //chdir() cambia el dir del proceso
+            if (dir == NULL || chdir(dir) < 0){
+                perror("cd error");
+            }
+            continue;
+        }
+        //Jobs
+        if(strcmp(argv[0], "jobs")== 0){
+            printf("Falta por hacer el job\n");
+            continue;
+        }
+        //Pmon
+        if(strcmp(argv[0], "pmon")==0){
+            printf("Falta por hacer pmon\n");
+            continue;
         }
 
         //Partir el fork
