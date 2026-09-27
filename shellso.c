@@ -6,6 +6,7 @@
 #include <signal.h>
 #include "jobs.h"
 #include "pipes.h"
+#include "redireccion.h"
 
 //recolecta todos los hijos terminados
 //sin bloquearse. Se llama de forma asíncrona.
@@ -179,6 +180,20 @@ int main(void) {
             continue;
         }
 
+        char *archivo_in = NULL;
+        char *archivo_out = NULL;
+        int modo_append = 0;
+
+        if (redireccion_parsear(argv, &archivo_in, &archivo_out, &modo_append) < 0) {
+            free(argv);
+            continue;
+        }
+
+        if (argv[0] == NULL) {
+            free(argv);
+            continue;
+        }
+
         // Partir el fork
         pid_t pid = fork();
         if (pid < 0){
@@ -189,6 +204,12 @@ int main(void) {
         }
         // Hijo
         else if(pid == 0){
+            if (redireccion_aplicar(archivo_in, archivo_out, modo_append) < 0) {
+                free(argv);
+                free(linea);
+                _exit(EXIT_FAILURE);
+            }
+
             execvp(argv[0], argv);
             perror("Comando no existe");
             free(argv);

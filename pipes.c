@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "pipes.h"
+#include "redireccion.h"
 
 Comando *parsear_linea(char *linea, int *total_cmds){ //usando strtok_r separa el string por cada "|" que encuentra
     int num_cmds =0;
@@ -68,6 +69,21 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
                 close(fd[0]);
                 close(fd[1]);
             }
+            char *archivo_in = NULL;
+            char *archivo_out = NULL;
+            int modo_append = 0;
+
+            if (redireccion_parsear(pipeline[i].args, &archivo_in, &archivo_out, &modo_append) < 0) {
+                _exit(EXIT_FAILURE);
+            }
+
+            if (redireccion_aplicar(archivo_in, archivo_out, modo_append) < 0) {
+                _exit(EXIT_FAILURE);
+            }
+
+            if (pipeline[i].args[0] == NULL) {
+                _exit(EXIT_FAILURE);
+            }
 
             //ejecucion del comando
             execvp(pipeline[i].args[0], pipeline[i].args);
@@ -105,7 +121,6 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
             waitpid(pids_salida[i], NULL, 0);
         }
     }
-
     return n_pids;
 }
 
