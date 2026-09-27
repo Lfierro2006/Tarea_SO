@@ -63,7 +63,7 @@ int main(void) {
 
         // Muestra el prompt de nuestra shell con la direccion donde estamos trabajando
         if (getcwd(cwd,sizeof(cwd)) != NULL){
-            printf("\033[1;3;44;96mShell-A:\033[0m\033[36m%s\033[0m$",cwd);
+            printf("\033[1;3;44;96mmishell:\033[0m\033[36m%s\033[0m$",cwd);
         } else {
             perror("getcwd error");
         }
