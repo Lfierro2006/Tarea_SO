@@ -111,7 +111,7 @@ int main(void) {
             perror("Comando no existe");
             free(argv);
             free(linea);
-            exit(127);
+            _exit(127);
         }
         // Padre
         else{

@@ -71,7 +71,7 @@ void ejecutar_tuberias(Comando *pipeline, int total_cmds) {
             //ejecucion del comando
             execvp(pipeline[i].args[0], pipeline[i].args);
             perror("Error en execvp");
-            exit(EXIT_FAILURE);
+            _exit(EXIT_FAILURE);
         }
     else if (pid<0){
             perror("Error en fork");
