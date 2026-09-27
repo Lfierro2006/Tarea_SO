@@ -174,8 +174,15 @@ int main(void) {
         }
         
         // Pmon
-        if(strcmp(argv[0], "pmon")==0){
-            printf("Falta por hacer pmon\n");
+        if (strcmp(argv[0], "pmon") == 0) {
+            int seg = 2; // Valor por defecto si se omitieran segundos
+            if (argc > 1) {
+                seg = atoi(argv[1]);
+                if (seg <= 0) {
+                    seg = 2;
+                }
+            }
+            jobs_pmon(seg);
             free(argv);
             continue;
         }
