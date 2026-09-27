@@ -18,16 +18,46 @@ Comando *parsear_linea(char *linea, int *total_cmds){ //usando strtok_r separa e
         int num_args= 0;
         pipeline[num_cmds].args= NULL;
 
-        char *saveptr_espacio;
+        // logica reemplazo de strtok: corta los argumentos y maneja las comillas que no podia el strtok
+        char *lectura = cmd_str;
+        char *escritura = cmd_str;
 
-        //lo siguiente toma el bloque de string separado por "|" e ignora todo lo que no sean letras y los guarda
-        char *arg_str= strtok_r(cmd_str, " \n\t", &saveptr_espacio);
+        while (*lectura != '\0') {
+            // ignorar los espacios en blanco sobrantes antes de la palabra
+            while (*lectura == ' ' || *lectura == '\t' || *lectura == '\n') {
+                lectura++;
+            }
+            if (*lectura == '\0') {
+                break;
+            }
 
-        while (arg_str!= NULL) {
-            pipeline[num_cmds].args= realloc(pipeline[num_cmds].args, (num_args + 1) * sizeof(char *));
-            pipeline[num_cmds].args[num_args]= arg_str;
-            num_args++;
-            arg_str= strtok_r(NULL, " \n\t", &saveptr_espacio);
+            // agregar el inicio de esta palabra al arreglo de argumentos
+            pipeline[num_cmds].args = realloc(pipeline[num_cmds].args, (num_args + 1) * sizeof(char *));
+            pipeline[num_cmds].args[num_args++] = escritura;
+
+            // leer letra por letra para ver si estamos dentro de comillas
+            int en_comillas = 0;
+            char tipo_comilla = 0;
+
+            while (*lectura != '\0') {
+                if (!en_comillas && (*lectura == '"' || *lectura == '\'')) {
+                    en_comillas = 1;
+                    tipo_comilla = *lectura;
+                    lectura++; 
+                } else if (en_comillas && *lectura == tipo_comilla) {
+                    en_comillas = 0;
+                    lectura++; 
+                } else if (!en_comillas && (*lectura == ' ' || *lectura == '\t' || *lectura == '\n')) {
+                    lectura++; 
+                    break;     
+                } else {
+                    *escritura = *lectura; 
+                    escritura++;
+                    lectura++;
+                }
+            }
+            *escritura = '\0'; 
+            escritura++;
         }
 
         //el ultimo indice del arreglo de comandos se coloca NULL para el requisito del execvp()
@@ -82,21 +112,6 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
                 dup2(fd[1], STDOUT_FILENO);
                 close(fd[0]);
                 close(fd[1]);
-            }
-            char *archivo_in = NULL;
-            char *archivo_out = NULL;
-            int modo_append = 0;
-
-            if (redireccion_parsear(pipeline[i].args, &archivo_in, &archivo_out, &modo_append) < 0) {
-                _exit(EXIT_FAILURE);
-            }
-
-            if (redireccion_aplicar(archivo_in, archivo_out, modo_append) < 0) {
-                _exit(EXIT_FAILURE);
-            }
-
-            if (pipeline[i].args[0] == NULL) {
-                _exit(EXIT_FAILURE);
             }
 
             // R3: Redireccion de entrada/salida

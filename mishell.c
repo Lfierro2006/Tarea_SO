@@ -99,7 +99,7 @@ int main(void) {
 
         //Si la línea tiene pipes
         if (strchr(linea, '|') != NULL){
-            //Duplica la línea porque parsear_linea la modifica con strtok_r
+            //Duplica la línea porque parsear_linea la modifica internamente
             char *copia = malloc(strlen(linea) + 1);
             strcpy(copia, linea);
             int total_cmds = 0;
@@ -123,13 +123,46 @@ int main(void) {
         // Variables dinámicas para los argumentos en cada iteración
         int argc = 0;
         char **argv = NULL; 
-        char *token = strtok(linea, " \t\n");
+        // logica reemplazo de strtok: corta los argumentos y maneja las comillas que no podia el strtok
+        char *lectura = linea;
+        char *escritura = linea;
 
-        // Mientras queden palabras, agrandamos la memoria un bloque a la vez
-        while (token != NULL) {
+        while (*lectura != '\0') {
+            // ignorar los espacios en blanco sobrantes antes de la palabra
+            while (*lectura == ' ' || *lectura == '\t' || *lectura == '\n') {
+                lectura++;
+            }
+            if (*lectura == '\0') {
+                break;
+            }
+
+            // agregar el inicio de esta palabra al arreglo de argumentos
             argv = realloc(argv, (argc + 1) * sizeof(char *));
-            argv[argc++] = token;
-            token = strtok(NULL, " \t\n");
+            argv[argc++] = escritura;
+
+            // leer letra por letra para ver si estamos dentro de comillas
+            int en_comillas = 0;
+            char tipo_comilla = 0;
+
+            while (*lectura != '\0') {
+                if (!en_comillas && (*lectura == '"' || *lectura == '\'')) {
+                    en_comillas = 1;
+                    tipo_comilla = *lectura;
+                    lectura++; 
+                } else if (en_comillas && *lectura == tipo_comilla) {
+                    en_comillas = 0;
+                    lectura++; 
+                } else if (!en_comillas && (*lectura == ' ' || *lectura == '\t' || *lectura == '\n')) {
+                    lectura++; 
+                    break;     
+                } else {
+                    *escritura = *lectura; 
+                    escritura++;
+                    lectura++;
+                }
+            }
+            *escritura = '\0'; 
+            escritura++;
         }
         
         // Si solo le damos a enter en la shell, liberamos y volvemos al inicio
