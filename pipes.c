@@ -83,6 +83,21 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
                 close(fd[0]);
                 close(fd[1]);
             }
+            char *archivo_in = NULL;
+            char *archivo_out = NULL;
+            int modo_append = 0;
+
+            if (redireccion_parsear(pipeline[i].args, &archivo_in, &archivo_out, &modo_append) < 0) {
+                _exit(EXIT_FAILURE);
+            }
+
+            if (redireccion_aplicar(archivo_in, archivo_out, modo_append) < 0) {
+                _exit(EXIT_FAILURE);
+            }
+
+            if (pipeline[i].args[0] == NULL) {
+                _exit(EXIT_FAILURE);
+            }
 
             // R3: Redireccion de entrada/salida
             char *archivo_in = NULL;
@@ -137,7 +152,6 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
             waitpid(pids_salida[i], NULL, 0);
         }
     }
-
     return n_pids;
 }
 

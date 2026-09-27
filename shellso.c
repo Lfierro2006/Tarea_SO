@@ -175,7 +175,7 @@ int main(void) {
         
         // Pmon
         if (strcmp(argv[0], "pmon") == 0) {
-            int seg = 2; // Valor por defecto si se omite segundos
+            int seg = 2; // Valor por defecto si se omitieran segundos
             if (argc > 1) {
                 seg = atoi(argv[1]);
                 if (seg <= 0) {
