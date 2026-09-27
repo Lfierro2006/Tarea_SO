@@ -3,7 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "signal.h"
 #include "pipes.h"
+#include "redireccion.h"
 
 Comando *parsear_linea(char *linea, int *total_cmds){ //usando strtok_r separa el string por cada "|" que encuentra
     int num_cmds =0;
@@ -46,10 +48,10 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
     int fd[2];       //tunel: fd[0] será lectura y fd[1] escritura respectiva
     int n_pids = 0;  // cuántos PIDs hemos guardado
 
-    for (int i=0;i<total_cmds;i++){
+    for (int i = 0; i < total_cmds; i++){
         //si no es el ultimo cmd de la iteracion se crea un pipe
-        if (i<total_cmds-1) {
-            if(pipe(fd)<0) {
+        if (i < total_cmds - 1) {
+            if(pipe(fd) < 0) {
                 perror("Error en pipe");
                 return -1;
             }
@@ -59,14 +61,44 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
 
         //PROCESO HIJO
         if (pid==0){    //si hay una conexion pendiente, une la entrada del pipe anterior
+            // process background no deben verse afectados por Ctrl+C
+            if (background) {
+                setpgid(0, 0);
+            }
+
+            // restaurar disposicion por defecto de SIGINT y SIGQUIT en el hijo
+            struct sigaction sa_dfl;
+            sa_dfl.sa_handler = SIG_DFL;
+            sigemptyset(&sa_dfl.sa_mask);
+            sa_dfl.sa_flags = 0;
+            sigaction(SIGINT, &sa_dfl, NULL);
+            sigaction(SIGQUIT, &sa_dfl, NULL);
+
             if (fd_in!= 0){
                 dup2(fd_in, STDIN_FILENO);
                 close(fd_in);
             }
-            if(i<(total_cmds-1)){   //si no es el ultimo cmd, une la salida estandar al pipe actual y cierra lo q no usa
+            if(i < (total_cmds - 1)){   //si no es el ultimo cmd, une la salida estandar al pipe actual y cierra lo q no usa
                 dup2(fd[1], STDOUT_FILENO);
                 close(fd[0]);
                 close(fd[1]);
+            }
+
+            // R3: Redireccion de entrada/salida
+            char *archivo_in = NULL;
+            char *archivo_out = NULL;
+            int modo_append = 0;
+
+            if (redireccion_parsear(pipeline[i].args, &archivo_in, &archivo_out, &modo_append) < 0) {
+                _exit(EXIT_FAILURE);
+            }
+
+            if (redireccion_aplicar(archivo_in, archivo_out, modo_append) < 0) {
+                _exit(EXIT_FAILURE);
+            }
+
+            if (pipeline[i].args[0] == NULL) {
+                _exit(EXIT_FAILURE);
             }
 
             //ejecucion del comando
@@ -74,7 +106,7 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
             perror("Error en execvp");
             _exit(EXIT_FAILURE);
         }
-    else if (pid<0){
+        else if (pid < 0){
             perror("Error en fork");
             return -1;
         }
@@ -88,7 +120,7 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
         if (fd_in!=0){  //cierra el fd actual sin usar
             close(fd_in);
         }
-        if (i<(total_cmds-1)){  //cierra el fd actual que no usa y guarda el de lectura para que el hijo lo conecte
+        if (i < (total_cmds - 1)){  //cierra el fd actual que no usa y guarda el de lectura para que el hijo lo conecte
             close(fd[1]);
             fd_in= fd[0];
         }
@@ -108,7 +140,6 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
 
     return n_pids;
 }
-
 
 
 //funcion propuesta por gemini para no tener problemas con fugas de memoria (no entendi como se usaba pero la dejo aqui xsiacaso)

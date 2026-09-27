@@ -6,6 +6,7 @@
 #include <signal.h>
 #include "jobs.h"
 #include "pipes.h"
+#include "redireccion.h"
 
 //recolecta todos los hijos terminados
 //sin bloquearse. Se llama de forma asíncrona.
@@ -27,6 +28,14 @@ static void instalar_sigchld(void) {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
     sigaction(SIGCHLD, &sa, NULL);
+
+    // cambio R6 shell ignora SIGINT y SIGQUIT
+    struct sigaction sa_ign;
+    sa_ign.sa_handler = SIG_IGN;
+    sigemptyset(&sa_ign.sa_mask);
+    sa_ign.sa_flags = SA_RESTART;
+    sigaction(SIGINT, &sa_ign, NULL);
+    sigaction(SIGQUIT, &sa_ign, NULL);
 }
 
 
@@ -133,14 +142,6 @@ int main(void) {
         argv = realloc(argv, (argc + 1) * sizeof(char *));
         argv[argc] = NULL;
 
-        // Para probar nomas, ponganlo como comentario si es muy incomodo
-        
-        /* printf("Comando: [%s]\n", argv[0]);
-        for(int i = 1; i < argc; i++){
-            printf(" Argumento [%d]: %s\n", i , argv[i]);
-        } */
-
-
         // Comandos Built In:
 
         // Exit
@@ -179,6 +180,21 @@ int main(void) {
             continue;
         }
 
+        // r3, Parsear redirecciones antes del fork
+        char *archivo_in = NULL;
+        char *archivo_out = NULL;
+        int modo_append = 0;
+
+        if (redireccion_parsear(argv, &archivo_in, &archivo_out, &modo_append) < 0) {
+            free(argv);
+            continue;
+        }
+
+        if (argv[0] == NULL) {
+            free(argv);
+            continue;
+        }
+
         // Partir el fork
         pid_t pid = fork();
         if (pid < 0){
@@ -189,13 +205,32 @@ int main(void) {
         }
         // Hijo
         else if(pid == 0){
+            // Aislar procesos en background de Ctrl+C
+            if (background) {
+                setpgid(0, 0);
+            }
+
+            // Restaurar disposicion por defecto en el hijo
+            struct sigaction sa_dfl;
+            sa_dfl.sa_handler = SIG_DFL;
+            sigemptyset(&sa_dfl.sa_mask);
+            sa_dfl.sa_flags = 0;
+            sigaction(SIGINT, &sa_dfl, NULL);
+            sigaction(SIGQUIT, &sa_dfl, NULL);
+
+            // Aplicar redirecciones en el hijo
+            if (redireccion_aplicar(archivo_in, archivo_out, modo_append) < 0) {
+                free(argv);
+                free(linea);
+                _exit(EXIT_FAILURE);
+            }
+
             execvp(argv[0], argv);
             perror("Comando no existe");
             free(argv);
             free(linea);
             _exit(127);
         }
-        
         // Padre
         else{
             if (background) {
@@ -222,3 +257,22 @@ int main(void) {
     
     return 0;
 }
+
+
+/* checklist r6
+
+La shell principal ignore SIGINT y SIGQUIT | hecho
+en instalar_sigchld() de shellso.c, se configura sa_ign.sa_handler = SIG_IGN tanto para SIGINT como para SIGQUIT
+
+Los procesos hijos (pid == 0) restauren el comportamiento por defecto (SIG_DFL) antes de ejecutar execvp
+
+Terminar únicamente el comando en primer plano con Ctrl+C
+Tanto en shellso.c  como en pipes.c , dentro del bloque if (pid == 0) —exactamente después del fork() y antes del execvp(
+
+Proteger los procesos en background frente a Ctrl+C
+proceso hijo (pid == 0) de shellso.c y pipes.c, se evalúa if (background) { setpgid(0, 0); }
+
+Uso estricto de sigaction() con sa_mask y sa_flags
+En todo el proyecto se usa exclusivamente sigaction(), inicializando las máscaras con sigemptyset y aplicando el flag SA_RESTART para que llamadas bloqueantes como getline() no llegasuen a fallar
+
+*/
