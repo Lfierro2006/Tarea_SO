@@ -73,7 +73,7 @@ Comando *parsear_linea(char *linea, int *total_cmds){ //usando strtok_r separa e
 }
 
 
-int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *pids_salida, int max_pids) {
+int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *pids_salida, int max_pids, char *linea_original, char *copia_linea) {
     int fd_in= 0;    //puente: lectura del pipe anerior
     int fd[2];       //tunel: fd[0] será lectura y fd[1] escritura respectiva
     int n_pids = 0;  // cuántos PIDs hemos guardado
@@ -120,20 +120,34 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
             int modo_append = 0;
 
             if (redireccion_parsear(pipeline[i].args, &archivo_in, &archivo_out, &modo_append) < 0) {
+                liberar_pipeline(pipeline,total_cmds);
+                free(linea_original);
+                free(copia_linea);
                 _exit(EXIT_FAILURE);
             }
 
             if (redireccion_aplicar(archivo_in, archivo_out, modo_append) < 0) {
+                liberar_pipeline(pipeline,total_cmds);
+                free(linea_original);
+                free(copia_linea);
                 _exit(EXIT_FAILURE);
             }
 
             if (pipeline[i].args[0] == NULL) {
+                liberar_pipeline(pipeline,total_cmds);
+                free(linea_original);
+                free(copia_linea);
                 _exit(EXIT_FAILURE);
             }
 
             //ejecucion del comando
             execvp(pipeline[i].args[0], pipeline[i].args);
             perror("Error en execvp");
+
+            liberar_pipeline(pipeline,total_cmds);
+            free(linea_original);
+            free(copia_linea);
+
             _exit(EXIT_FAILURE);
         }
         else if (pid < 0){

@@ -15,7 +15,7 @@ Comando *parsear_linea(char *linea, int *total_cmds);
 //background == 1: no espera (background)
 //Guarda los PIDs de los hijos en pids_salida
 //Devuelve el número de PIDs guardados, en caso de error -1
-int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *pids_salida, int max_pids);
+int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *pids_salida, int max_pids, char *linea_original, char *copia_linea);
 
 void liberar_pipeline(Comando *pipeline, int total_cmds);
 

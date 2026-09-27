@@ -107,7 +107,7 @@ int main(void) {
 
             if (pipeline != NULL && total_cmds > 0) {
                 pid_t pids[16];
-                int n = ejecutar_tuberias(pipeline, total_cmds, background, pids, 16);
+                int n = ejecutar_tuberias(pipeline, total_cmds, background, pids, 16, linea, copia);
                 if (background && n > 0){
                     int job_id = jobs_agregar(pids, n, cmdline_para_jobs);
                     if (job_id > 0){
