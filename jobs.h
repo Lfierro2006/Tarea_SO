@@ -47,4 +47,7 @@ void jobs_avisar_terminados(void);
 
 //Job *jobs_buscar_por_id(int job_id); RESERVADO BONUS CTRL+Z
 
+//
+void jobs_pmon(int segundos);
+
 #endif
