@@ -31,7 +31,7 @@ Comando *parsear_linea(char *linea, int *total_cmds){ //usando strtok_r separa e
         //el ultimo indice del arreglo de comandos se coloca NULL para el requisito del execvp()
         pipeline[num_cmds].args= realloc(pipeline[num_cmds].args, (num_args + 1) * sizeof(char *));
         pipeline[num_cmds].args[num_args]= NULL;
-
+        
         num_cmds++;
         cmd_str= strtok_r(NULL, "|", &saveptr_pipe);
     }
@@ -41,16 +41,17 @@ Comando *parsear_linea(char *linea, int *total_cmds){ //usando strtok_r separa e
 }
 
 
-void ejecutar_tuberias(Comando *pipeline, int total_cmds) {
-    int fd_in= 0;   //puente: lectura del pipe anerior
-    int fd[2];      //tunel: fd[0] será lectura y fd[1] escritura respectiva
+int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *pids_salida, int max_pids) {
+    int fd_in= 0;    //puente: lectura del pipe anerior
+    int fd[2];       //tunel: fd[0] será lectura y fd[1] escritura respectiva
+    int n_pids = 0;  // cuántos PIDs hemos guardado
 
     for (int i=0;i<total_cmds;i++){
         //si no es el ultimo cmd de la iteracion se crea un pipe
         if (i<total_cmds-1) {
             if(pipe(fd)<0) {
                 perror("Error en pipe");
-                return;
+                return -1;
             }
         }
 
@@ -75,10 +76,15 @@ void ejecutar_tuberias(Comando *pipeline, int total_cmds) {
         }
     else if (pid<0){
             perror("Error en fork");
-            return;
+            return -1;
         }
 
         //PROCESO PADRE
+        
+        // Guarda el PID del hijo
+        if (n_pids < max_pids) {
+            pids_salida[n_pids++] = pid;
+        }
         if (fd_in!=0){  //cierra el fd actual sin usar
             close(fd_in);
         }
@@ -88,9 +94,19 @@ void ejecutar_tuberias(Comando *pipeline, int total_cmds) {
         }
     }
 
-    for(int i=0;i<total_cmds; i++) {  //padre recolecta hijos (para evitar los procesos zombie)
-        wait(NULL);
+    //Cierra el último fd_in si quedó abierto (recomendación externa)
+    if (fd_in != 0) {
+        close(fd_in);
+    }    
+
+    //Si es foreground, espera a todos los hijos del pipeline
+    if (!background) {
+        for (int i = 0; i < n_pids; i++) {
+            waitpid(pids_salida[i], NULL, 0);
+        }
     }
+
+    return n_pids;
 }
 
 
