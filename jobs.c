@@ -1,6 +1,9 @@
 #include "jobs.h"
 #include <signal.h>
+<<<<<<< HEAD
 #include <stdio.h>
+=======
+>>>>>>> 8bcc01e98989ceccc5707bec59089c5f61f59cbf
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
