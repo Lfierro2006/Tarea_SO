@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
-#include "jobs.h"
 #include <stdlib.h>
 
 
