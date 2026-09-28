@@ -77,6 +77,7 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
     int fd_in= 0;    //puente: lectura del pipe anerior
     int fd[2];       //tunel: fd[0] será lectura y fd[1] escritura respectiva
     int n_pids = 0;  // cuántos PIDs hemos guardado
+    pid_t pgid = 0;
 
     for (int i = 0; i < total_cmds; i++){
         //si no es el ultimo cmd de la iteracion se crea un pipe
@@ -91,18 +92,23 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
 
         //PROCESO HIJO
         if (pid==0){    //si hay una conexion pendiente, une la entrada del pipe anterior
-            // process background no deben verse afectados por Ctrl+C
-            if (background) {
-                setpgid(0, 0);
+            // Todos los comandos del pipeline van al mismo grupo de procesos
+            if (pgid == 0) pgid = getpid();
+            setpgid(0, pgid);
+            if (!background) {
+                tcsetpgrp(STDIN_FILENO, pgid);
             }
 
-            // restaurar disposicion por defecto de SIGINT y SIGQUIT en el hijo
+            // restaurar disposicion por defecto de señales en el hijo
             struct sigaction sa_dfl;
             sa_dfl.sa_handler = SIG_DFL;
             sigemptyset(&sa_dfl.sa_mask);
             sa_dfl.sa_flags = 0;
             sigaction(SIGINT, &sa_dfl, NULL);
             sigaction(SIGQUIT, &sa_dfl, NULL);
+            sigaction(SIGTSTP, &sa_dfl, NULL);
+            sigaction(SIGTTIN, &sa_dfl, NULL);
+            sigaction(SIGTTOU, &sa_dfl, NULL);
 
             if (fd_in!= 0){
                 dup2(fd_in, STDIN_FILENO);
@@ -161,6 +167,9 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
         if (n_pids < max_pids) {
             pids_salida[n_pids++] = pid;
         }
+        
+        if (pgid == 0) pgid = pid;
+        setpgid(pid, pgid);
         if (fd_in!=0){  //cierra el fd actual sin usar
             close(fd_in);
         }
@@ -175,12 +184,7 @@ int ejecutar_tuberias(Comando *pipeline, int total_cmds, int background, pid_t *
         close(fd_in);
     }    
 
-    //Si es foreground, espera a todos los hijos del pipeline
-    if (!background) {
-        for (int i = 0; i < n_pids; i++) {
-            waitpid(pids_salida[i], NULL, 0);
-        }
-    }
+    // El waitpid se maneja ahora en mishell.c
     return n_pids;
 }
 

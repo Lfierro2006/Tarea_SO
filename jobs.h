@@ -45,7 +45,11 @@ void jobs_marcar_terminado(pid_t pid);
 //Se llama desde el ciclo principal, no desde el manejador.
 void jobs_avisar_terminados(void);
 
-//Job *jobs_buscar_por_id(int job_id); RESERVADO BONUS CTRL+Z
+Job *jobs_buscar_por_id(int job_id);
+
+void jobs_marcar_detenido(pid_t pid);
+int jobs_fg(int job_id);
+int jobs_bg(int job_id);
 
 //
 void jobs_pmon(int segundos);
