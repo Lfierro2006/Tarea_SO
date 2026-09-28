@@ -1,12 +1,6 @@
 #include "jobs.h"
 #include <signal.h>
-<<<<<<< HEAD
-<<<<<<< HEAD
 #include <stdio.h>
-=======
->>>>>>> 8bcc01e98989ceccc5707bec59089c5f61f59cbf
-=======
->>>>>>> 8bcc01e98989ceccc5707bec59089c5f61f59cbf
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -280,6 +274,14 @@ typedef struct {
   int valido;
 } MuestraCPU;
 
+typedef struct {
+    pid_t pid;
+    char cmdline[256];
+    char estado[32];
+    double cpu_pct;
+    long rss;
+}   Pmonfila;
+
 void jobs_pmon(int segundos) {
   if (segundos <= 0) {
     segundos = 2;
@@ -331,6 +333,9 @@ void jobs_pmon(int segundos) {
       MuestraCPU nuevas_muestras[256];
       int n_nuevas = 0;
 
+      Pmonfila filas[256];
+      int n_filas = 0;
+
       for (int i = 0; i < MAX_JOBS; i++) {
         if (tabla_jobs[i].activo) {
           for (int j = 0; j < tabla_jobs[i].n_pids; j++) {
@@ -360,12 +365,39 @@ void jobs_pmon(int segundos) {
                 nuevas_muestras[n_nuevas].valido = 1;
                 n_nuevas++;
               }
-
-              printf("%-8d %-20.20s %-14s %-14.1f %-10ld\n", (int)pid,
-                     tabla_jobs[i].cmdline, traducir_estado(state), cpu_pct,
-                     rss);
+              
+              if (n_filas < 256) {
+                filas[n_filas].pid = pid;
+                strncpy(filas[n_filas].cmdline, tabla_jobs[i].cmdline, 255);
+                filas[n_filas].cmdline[255] = '\0';
+                strncpy(filas[n_filas].cmdline, traducir_estado(state), 31);
+                filas[n_filas].cmdline[31] = '\0';
+                filas[n_filas].cpu_pct = cpu_pct;
+                filas[n_filas].rss = rss;
+                n_filas++;
+              }
             }
           }
+        }
+      }
+
+      // Orden de filas según %CPU desde mayor a menor
+      for (int i = 0; i < n_filas -1; i++) {
+        for (int j = 0; j < n_filas - i -1; j++) {
+            if (filas[j].cpu_pct < filas[j+1].cpu_pct) {
+                Pmonfila temp = filas[j];
+                filas[j] = filas[j+1];
+                filas[j+1] = temp;
+            }
+        }
+      }
+
+      //show tabla
+      for (int i = 0; i < n_filas; i++) {
+        if (i == 0 && filas[i].cpu_pct > 0.0) {
+            printf("\033[1;31m%-8d %-20.20s %-14s %-14.1f %-10ld\033[0m\n", (int)filas[i].pid, filas[i].cmdline, filas[i].estado, filas[i].cpu_pct, filas[i].rss);
+        } else {
+            printf("%-8d %-20.20s %-14s %-14.1f %-10ld\n", (int)filas[i].pid, filas[i].cmdline, filas[i].estado, filas[i].cpu_pct, filas[i].rss);
         }
       }
 
