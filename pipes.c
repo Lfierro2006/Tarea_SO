@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include "signal.h"
+#include <signal.h>
 #include "pipes.h"
 #include "redireccion.h"
 
