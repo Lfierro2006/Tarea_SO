@@ -1,9 +1,10 @@
 #include "redireccion.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "unistd.h"
-#include "fcntl.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 
 
 int redireccion_parsear(char **argv, char **archivo_in, char **archivo_out, int *modo_append) {
