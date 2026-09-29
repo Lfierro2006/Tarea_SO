@@ -10,14 +10,22 @@ Una implementación de un intérprete de comandos (shell) en C para entornos POS
 | Eduardo Riveros  | 2025432692  |
 | Vicente Vergara | 2025431734  |
 
-## Instrucciones de Uso:
+## Instrucciones de Compilacion:
 
 El proyecto incluye un `Makefile` configurado para compilar todos los módulos automáticamente con las banderas de advertencia y depuración necesarias (`-Wall -Wextra -std=gnu11 -g`).
 
-1. Abre una terminal y posiciónate en el directorio raíz del proyecto.
-2. Ejecuta "make" en la terminal para compilar el codigo de la shell y sacar el ejecutable
-3. Una vez que compile, ejecuta la shell usando "./mishell" en la terminal
-4. De ahi se vera la shell con su prompt personalizado para poder ejecutar comandos en ella. Si uno quiere, escribir exit o presionar (CTRL+D) (EOF).
+- Abre una terminal y posiciónate en el directorio raíz del proyecto.
+- Ejecuta "make" en la terminal para compilar el codigo de la shell y sacar el ejecutable
+- Una vez que compile, ejecuta la shell usando "./mishell" en la terminal
+- De ahi se vera la shell con su prompt personalizado para poder ejecutar comandos en ella. 
+
+## Instrucciones de Ejecución:
+
+- Dentro de la shell uno tiene acceso a comandos simples mediante escritura directa en la shell
+- Para poder trabajar comandos multiples dentro de la shell, uno debe escribir la serie de comandos acompañado de el simbolo "|" entre cada comando que siga al inicial.
+- Si uno desea ejecutar un comando en segundo plano, debe usar el sufijo "&" al final del comando que desea trabajar en segundo plano.
+- Si uno quiere terminar el uso de la shell, escribir exit n (opcional) o presionar (CTRL+D) (EOF) al ubicarse dentro de ella.
+
 
 ## Funcionalidades soportadas:
 - Ejecución de comandos externos: Soporte nativo a través de PATH usando execvp.
