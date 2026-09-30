@@ -370,7 +370,7 @@ void jobs_pmon(int segundos) {
                 filas[n_filas].pid = pid;
                 strncpy(filas[n_filas].cmdline, tabla_jobs[i].cmdline, 255);
                 filas[n_filas].cmdline[255] = '\0';
-                strncpy(filas[n_filas].cmdline, traducir_estado(state), 31);
+                strncpy(filas[n_filas].estado, traducir_estado(state), 31);
                 filas[n_filas].estado[31] = '\0';
                 filas[n_filas].cpu_pct = cpu_pct;
                 filas[n_filas].rss = rss;
